@@ -1,3 +1,5 @@
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <script>(function(){try{var t=localStorage.getItem('pf-theme');if(t==='dark'||t==='light')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
 <title>PolyField Android App — Manual</title>
 <style>
@@ -91,7 +93,22 @@
   .lb[data-open="true"]{display:flex}
   .lb img{max-width:100%;max-height:88vh;border-radius:8px}
   .lb .x{position:absolute;top:16px;right:20px;color:#fff;font-size:30px;cursor:pointer;line-height:1}
-  @media (max-width:560px){.picker{grid-template-columns:1fr}}
+  @media (max-width:560px){
+    .picker{grid-template-columns:1fr}
+    .head h1{font-size:1.6rem}
+    .head p{font-size:1.02rem;line-height:1.55}
+    .desc p{font-size:1.05rem;line-height:1.55}
+    .desc h3{font-size:1.18rem}
+    .desc .step{min-width:26px;height:26px;font-size:.85rem}
+    .scn .t{font-size:1.05rem}
+    .scn .s{font-size:.85rem}
+    .vhead .scn-name{font-size:.9rem}
+    .vhead .count{font-size:.9rem}
+    .nbtn{font-size:1.05rem;height:52px}
+    .manuals a{font-size:.92rem}
+    .demopill{font-size:.85rem}
+    .pickerlbl{font-size:.82rem}
+  }
   @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 
@@ -128,7 +145,7 @@
     <div class="desc"><h3 id="stepTitle"><span class="step" id="stepNum"></span><span id="stepTitleText"></span></h3><p id="stepDesc"></p></div>
     <div class="nav">
       <button class="nbtn prev" id="prev" onclick="step(-1)">&lsaquo; Previous</button>
-      <button class="nbtn next" id="next" onclick="step(1)">Next &rsaquo;</button>
+      <button class="nbtn next" id="next" onclick="nextOrRestart()">Next &rsaquo;</button>
     </div>
   </div>
 </div>
@@ -239,6 +256,7 @@ function buildThumbs(){
 }
 function pick(i){ sc=i; st=0; render(); }
 function step(d){ const n=SCN[sc].steps.length; st=Math.min(n-1,Math.max(0,st+d)); render(); }
+function nextOrRestart(){ const n=SCN[sc].steps.length; st = st>=n-1 ? 0 : st+1; render(); }
 function goto(i){ st=i; render(); }
 function lightbox(k){ el('lbimg').src=IMG[k]; el('lb').dataset.open='true'; }
 
@@ -257,7 +275,7 @@ function render(){
   el('stepDesc').innerHTML = cur[2];
   el('dots').innerHTML = steps.map((_,i)=>`<button class="dot" aria-current="${i===st}" onclick="goto(${i})" title="Step ${i+1}"></button>`).join('');
   el('prev').disabled = st===0;
-  el('next').disabled = st===steps.length-1;
+  el('next').innerHTML = (st===steps.length-1) ? 'Back to Start &rsaquo;' : 'Next &rsaquo;';
 }
 document.addEventListener('keydown',e=>{
   if(el('lb').dataset.open==='true'){ if(e.key==='Escape') el('lb').dataset.open='false'; return; }
