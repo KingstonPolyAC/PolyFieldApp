@@ -181,7 +181,7 @@
 <div class="head">
   <p class="eyebrow">PolyField · Apeks AM02i EDM total station</p>
   <h1>AM02i Field Trainer</h1>
-  <p>A like-for-like walkthrough of the on-instrument app in Demo mode — the same header, screens, layouts, controls and calibration diagrams the AM02i shows in the field, with simulated readings and no hardware. Drive it yourself or share the link; the strip along the bottom explains each step.</p>
+  <p>A like-for-like walkthrough of the on-instrument app in Demo mode — the same header, screens, layouts, controls and calibration diagrams the AM02i shows in the field, with simulated readings and no hardware. Drive it yourself or share the link; a description of each screen follows below.</p>
 </div>
 
 <div class="instrument">
@@ -197,7 +197,6 @@
       <span class="sp"></span>
       <button class="nbtn next" id="nbNext" onclick="navNext()"></button>
     </div>
-    <div class="guide"><span class="tag" id="gtag">Step</span><span id="gtext"></span></div>
   </div>
   <span class="label">APEKS · AM02i</span>
   <span class="keys"><i></i><i></i><i></i></span>
@@ -242,7 +241,7 @@ reset();
 const el=id=>document.getElementById(id);
 function now(){return new Date().toTimeString().slice(0,8);}
 function f2(n){return n.toFixed(2);}
-function setGuide(t,x){el('gtag').textContent=t;el('gtext').textContent=x;}
+function setGuide(){}  /* step strip removed — descriptions live below the device */
 
 // battery pill (simple, like the app's centre battery)
 function batteryPill(){
@@ -467,3 +466,4 @@ function rSettings(){
 
 el('bat').innerHTML=batteryPill();
 render();
+</script>
