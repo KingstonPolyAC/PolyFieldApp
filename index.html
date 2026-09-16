@@ -37,7 +37,11 @@
   .manuals a{color:var(--muted);font-size:.95rem;font-weight:700;padding:5px 14px;border:1px solid var(--line);border-radius:8px;background:var(--navy2)}
   .manuals a:hover{color:var(--text);text-decoration:none;border-color:var(--blue)}
   .manuals a.on{background:var(--blue);border-color:var(--blue);color:#fff}
-  .theme-btn{margin-left:auto;cursor:pointer;background:var(--navy2);border:1px solid var(--line);color:var(--muted);border-radius:20px;padding:3px 10px;font-size:.85rem;line-height:1;font-weight:600}
+  .langs{margin-left:auto;display:flex;gap:6px}
+  .langs a{color:var(--muted);font-size:.78rem;font-weight:600;letter-spacing:.03em;padding:3px 9px;border:1px solid var(--line);border-radius:20px;background:var(--navy2);cursor:pointer}
+  .langs a:hover{color:var(--text);border-color:var(--blue)}
+  .langs a.on{background:var(--blue);border-color:var(--blue);color:#fff}
+  .theme-btn{margin-left:8px;cursor:pointer;background:var(--navy2);border:1px solid var(--line);color:var(--muted);border-radius:20px;padding:3px 10px;font-size:.85rem;line-height:1;font-weight:600}
   .theme-btn:hover{color:var(--text);border-color:var(--blue)}
 
   .page{max-width:860px;margin:0 auto;padding:0 22px 80px}
@@ -120,6 +124,12 @@
       <a href="https://kingstonpolyac.github.io/PolyField-Server/">PolyField&nbsp;Server</a>
       <a href="https://kingstonpolyac.github.io/PolyFieldApp/" class="on">Android&nbsp;App</a>
     </nav>
+    <nav class="langs" id="langs">
+      <a data-lang="en" class="on" onclick="setLang('en')">EN</a>
+      <a data-lang="fr" onclick="setLang('fr')">FR</a>
+      <a data-lang="es" onclick="setLang('es')">ES</a>
+      <a data-lang="nl" onclick="setLang('nl')">NL</a>
+    </nav>
     <button id="themeBtn" class="theme-btn" type="button" title="Toggle light / dark" aria-label="Toggle light or dark theme">&#9790;</button>
   </div>
 </header>
@@ -131,11 +141,11 @@
       <p class="eyebrow">PolyField &middot; Apeks AM02i</p>
       <h1>AM02i Field Trainer</h1>
     </div>
-    <p>A screen-by-screen walkthrough of the AM02i EDM total station &mdash; in Demo mode. Pick a scenario, then step through it.</p>
-    <span class="demopill"><b>&#9679;</b> Demo mode &mdash; measurements are simulated, no hardware needed</span>
+    <p id="introP">A screen-by-screen walkthrough of the AM02i EDM total station &mdash; in Demo mode. Pick a scenario, then step through it.</p>
+    <span class="demopill" id="demoPill"><b>&#9679;</b> Demo mode &mdash; measurements are simulated, no hardware needed</span>
   </div>
 
-  <p class="pickerlbl">Choose a scenario</p>
+  <p class="pickerlbl" id="pickerLbl">Choose a scenario</p>
   <div class="picker" id="picker"></div>
 
   <div class="viewer">
@@ -239,20 +249,244 @@ const SETUP = [
   ["setup_scoreboard","Add scoreboard"],
 ];
 
-let sc = 0, st = 0;
+let sc = 0, st = 0, LANG='en';
 const el = id => document.getElementById(id);
 
+const EN_L = { intro:"", demo:"", pick:"", prev:"‹ Previous", next:"Next ›", restart:"Back to Start ›", stepOf:(a,b)=>`Step ${a} of ${b}` };
+
+/* ---- translations (English lives in SCN; on-screen control labels kept in English to match the screenshots) ---- */
+const F_scb=["Tableau d'affichage (optionnel)","Ajoutez un <b>tableau d'affichage</b> pour diffuser les résultats sur le stade — appuyez sur <b>MANAGE</b> dans la configuration des appareils, puis choisissez le type (p. ex. Daktronics), l'adresse IP et le port. Ignorez-le si vous n'en utilisez pas."];
+const F_home_t=["Sélection du type d'épreuve","Sur l'AM02i, choisissez <b>Throws</b>."];
+const F_home_j=["Sélection du type d'épreuve","Choisissez <b>Horizontal Jumps</b> (Long Jump / Triple Jump)."];
+const F_centreSet=["Centre confirmé","Le bouton devient vert avec un horodatage. <b>Reset Centre</b> l'efface ; <b>Next</b> continue."];
+const F_edgePass=["Bord validé","Un <b>PASS</b> vert indique le rayon mesuré et son écart au rayon cible, dans la tolérance. Un <b>FAIL</b> rouge indique le rayon mesuré et l'écart hors tolérance. Appuyez de nouveau sur le bouton pour re-mesurer."];
+const F_heat=["Carte de chaleur des lancers","La <b>Heat Map</b> place chaque lancer dans le secteur avec des arcs de distance, plus Total / Shortest / Average / Longest et les heures de début et de fin de session."];
+const F_board=["Étalonner la planche","Mesurez le <b>LEFT</b> et le <b>RIGHT</b> de chaque planche d'appel ; l'app en déduit la largeur de la planche. Utilisez le Check Point pour une mesure de test. Ajoutez une autre planche pour en étalonner plusieurs à la fois."];
+
+const S_scb=["Marcador (opcional)","Añade un <b>marcador</b> para mostrar los resultados en el estadio — pulsa <b>MANAGE</b> en la configuración de dispositivos y define el tipo (p. ej. Daktronics), la IP y el puerto. Omítelo si no usas ninguno."];
+const S_home_t=["Seleccionar tipo de prueba","En el AM02i, elige <b>Throws</b>."];
+const S_home_j=["Seleccionar tipo de prueba","Elige <b>Horizontal Jumps</b> (Long Jump / Triple Jump)."];
+const S_centreSet=["Centro confirmado","El botón se pone verde con una marca de tiempo. <b>Reset Centre</b> lo borra; <b>Next</b> continúa."];
+const S_edgePass=["Borde validado","Un <b>PASS</b> verde muestra el radio medido y su diferencia con el radio objetivo, dentro de la tolerancia. Un <b>FAIL</b> rojo muestra el radio medido y cuánto se sale de la tolerancia. Pulsa de nuevo el botón para volver a medir."];
+const S_heat=["Mapa de calor de lanzamientos","El <b>Heat Map</b> sitúa cada lanzamiento en el sector con arcos de distancia, además de Total / Shortest / Average / Longest y las horas de inicio y fin de la sesión."];
+const S_board=["Calibrar la tabla","Mide el <b>LEFT</b> y el <b>RIGHT</b> de cada tabla de batida; la app deduce el ancho de la tabla. Usa el Check Point para una medición de prueba. Añade otra tabla para calibrar varias a la vez."];
+
+const N_scb=["Scorebord (optioneel)","Voeg een <b>scorebord</b> toe om resultaten op het veld te tonen — tik op <b>MANAGE</b> bij Apparaten instellen en stel het type (bijv. Daktronics), IP en poort in. Sla over als je er geen gebruikt."];
+const N_home_t=["Kies het onderdeeltype","Kies op de AM02i <b>Throws</b>."];
+const N_home_j=["Kies het onderdeeltype","Kies <b>Horizontal Jumps</b> (Long Jump / Triple Jump)."];
+const N_centreSet=["Midden bevestigd","De knop wordt groen met een tijdstempel. <b>Reset Centre</b> wist het; <b>Next</b> gaat verder."];
+const N_edgePass=["Rand goedgekeurd","Een groene <b>PASS</b> toont de gemeten straal en de afwijking van de doelstraal, binnen tolerantie. Een rode <b>FAIL</b> toont de gemeten straal en hoe ver buiten de tolerantie. Druk nogmaals op de knop om opnieuw te meten."];
+const N_heat=["Worp-heatmap","De <b>Heat Map</b> zet elke worp in de sector uit met afstandsbogen, plus Total / Shortest / Average / Longest en de begin- en eindtijd van de sessie."];
+const N_board=["De balk kalibreren","Meet de <b>LEFT</b> en <b>RIGHT</b> van elke afzetbalk; de app leidt de balkbreedte af. Gebruik het Check Point voor een testmeting. Voeg nog een balk toe om er meerdere tegelijk te kalibreren."];
+
+const I18N = {
+ fr:{ L:{ intro:"Un guide écran par écran de la station totale EDM AM02i — en mode démo. Choisissez un scénario, puis parcourez-le.", demo:"<b>●</b> Mode démo — les mesures sont simulées, aucun matériel requis", pick:"Choisissez un scénario", prev:"‹ Précédent", next:"Suivant ›", restart:"Revenir au début ›", stepOf:(a,b)=>`Étape ${a} sur ${b}` },
+   scn:[
+    { name:"Lancers connectés", sub:"21 étapes · via serveur", steps:[
+      F_home_t,
+      ["Choix de l'épreuve serveur","Sélectionnez l'épreuve téléchargée depuis le PolyField Server — le nombre entre crochets est le nombre d'athlètes."],
+      ["Configuration des appareils","Configurez les éventuels tableaux d'affichage pour cette épreuve, puis <b>Next</b>."],
+      F_scb,
+      ["Définir le centre du cercle","Placez le prisme au centre du cercle et appuyez sur le grand bouton <b>Set Centre</b>. En mode démo, la mesure est simulée."],
+      F_centreSet,
+      ["Vérifier le bord","Maintenez le prisme contre l'intérieur du bord du cercle et appuyez sur <b>Verify Edge</b>."],
+      F_edgePass,
+      ["Définir la ligne de secteur","Placez le prisme sur la ligne de secteur de droite et appuyez sur <b>Measure</b> pour orienter les lancers par rapport au secteur. Nécessaire pour la carte de chaleur."],
+      ["Ligne de secteur définie","La distance du secteur est enregistrée. Appuyez sur <b>Next</b> pour ouvrir le concours."],
+      ["Enregistrer les athlètes","Appuyez sur <b>+</b> pour enregistrer chaque athlète. <b>Start</b> devient disponible une fois le plateau au complet."],
+      ["Prêt à démarrer","Chaque athlète porte désormais un numéro d'ordre de passage. L'ordre de passage est importé depuis le PolyField Server, et donc directement de votre fournisseur de compétition. Appuyez sur <b>Start</b>."],
+      ["Mesurer un lancer","L'athlète en cours, le tour et l'ordre de passage. Appuyez sur <b>MEASURE</b> pour la marque, <b>X</b> pour un essai mordu, <b>P</b> pour une impasse. <b>Next Athlete</b> passe au suivant."],
+      ["Marque enregistrée","Une marque valide s'affiche en bleu et alimente le <b>Best Mark</b> de l'athlète ainsi que l'historique des 6 tours."],
+      ["Tour terminé","Une fois que tous les athlètes ont lancé, une fenêtre <b>Round Complete</b> apparaît — <b>Continue to Round N</b> pour avancer, ou <b>Stay</b> pour continuer à ajouter des marques. Le bouton <b>Next Round</b> en bas fait de même. Cette transition apparaît à la fin des tours 1 et 2."],
+      ["Coupe et réordonnancement (après le tour 3)","Après le tour 3, la fenêtre propose une coupe — choisissez combien d'athlètes accèdent à la finale (<b>4 / 6 / 8 / 10 / All</b>), avec en option <b>Reorder athletes worst to best</b> ou <b>Apply cuts separately per age group</b>, ou <b>Select Athletes Manually</b>. Appuyez sur <b>Continue</b>."],
+      ["Confirmer la progression","Une confirmation liste les athlètes qui <b>avancent</b> (vert) et ceux qui sont <b>éliminés</b> (rouge), avec leur meilleure marque. Vérifiez, puis <b>Confirm &amp; Advance</b> — ou <b>Cancel</b> pour modifier la coupe."],
+      ["Transitions des tours suivants","Les tours après la coupe affichent une transition <b>Round N Complete</b> avec une option <b>Reorder Athletes (Worst to Best)</b> pour changer l'ordre de passage du tour suivant. <b>Continue to Round N</b> pour continuer."],
+      ["Concours terminé","À la fin du dernier tour, <b>Competition Complete!</b> confirme que tous les tours sont faits. <b>View Results</b> ouvre le classement final."],
+      ["Classement final","Les résultats de toute l'épreuve, classés par meilleure marque — médailles pour les trois premiers, nombre d'essais de chaque athlète et un lien vers la carte de chaleur par athlète."],
+      F_heat,
+    ]},
+    { name:"Lancers autonomes", sub:"11 étapes · sans serveur", steps:[
+      F_home_t,
+      ["Démarrer en autonome","Au lieu d'une épreuve serveur, appuyez sur <b>Start Stand-Alone</b> (à droite) pour fonctionner en connexion EDM directe, sans serveur."],
+      ["Configuration des appareils","Tableaux d'affichage optionnels, puis <b>Next</b>."],
+      F_scb,
+      ["Choisir le cercle","En autonome, vous choisissez vous-même la géométrie du cercle — <b>Shot / Discus / Hammer / Javelin Arc</b>. (Le mode connecté la déduit de l'épreuve.)"],
+      F_centreSet,
+      F_edgePass,
+      ["Ligne de secteur définie","La distance du secteur est enregistrée. Appuyez sur <b>Next</b> pour commencer à mesurer."],
+      ["Mesure directe","L'autonome est un mode de mesure directe : appuyez sur <b>MEASURE</b> pour lire une distance. Sans athlètes ni tours."],
+      ["Distance + historique","Chaque lancer est enregistré avec <b>Total / Longest / Average</b> et un historique. <b>New Event</b> recommence à zéro."],
+      F_heat,
+    ]},
+    { name:"Sauts connectés", sub:"14 étapes · via serveur", steps:[
+      F_home_j,
+      ["Choix de l'épreuve serveur","Sélectionnez l'épreuve de sauts depuis le PolyField Server — ici, le triple saut."],
+      ["Configuration des appareils (vent)","Un <b>anémomètre</b> et des tableaux d'affichage se règlent ici. Désactivez <b>Wind Readings</b> si vous n'utilisez pas d'anémomètre."],
+      ["Anémomètre connecté","Si vous utilisez un anémomètre relié au PolyField Server… Activez <b>Wind Readings</b> et appuyez sur <b>Select</b> pour choisir un anémomètre — le Demo Wind Gauge s'affiche <b>Connected</b>. Chaque essai capturera alors une mesure de vent."],
+      F_scb,
+      F_board,
+      ["Enregistrer les athlètes","Cochez les athlètes — chacun se voit attribuer une planche à l'enregistrement. Cela peut être modifié pendant le concours."],
+      ["Prêt à démarrer","Tous enregistrés. Appuyez sur <b>Next</b>."],
+      ["Mesurer un saut (avec vent)","Avec un anémomètre sélectionné, la tuile <b>WIND</b> est active. Appuyez sur <b>MEASURE</b> pour la distance et <b>WIND</b> pour lancer la moyenne sur 5 secondes ; <b>FOUL / PASS</b> au besoin. La planche de l'athlète se change via le menu déroulant. <b>Skip to…</b> permet de sortir de l'ordre."],
+      ["Changer la planche d'un athlète","Choisir une autre planche dans le menu de l'athlète affiche une confirmation <b>Board Change</b> (p. ex. <b>Moving to 13m Board</b>) pour cet essai. Appuyez sur <b>OK</b> pour appliquer."],
+      ["Saut + vent enregistrés","L'essai affiche la distance et son vent (ici <b>−1.0 m/s</b>). <b>PASS</b> devient <b>TAKE 2</b> pour mesurer un second point dans le sable si nécessaire."],
+      ["Sélection des finalistes (après le tour 3)","Après le tour 3, une fenêtre <b>Select Finalists</b> demande combien d'athlètes accèdent à la finale (<b>6 / 8 / 10 / 12</b>) — les N meilleurs par meilleure distance — ou <b>Select Athletes Manually</b>. Appuyez sur <b>Continue</b>."],
+      ["Sélection manuelle des finalistes","<b>Select Athletes Manually</b> ouvre une liste classée (meilleure marque par athlète) — cochez précisément qui se qualifie. <b>Back to Quick Select</b> revient aux boutons de nombre ; <b>Continue</b> valide."],
+      ["Confirmer la progression","Une confirmation liste les athlètes qui <b>avancent</b> (vert) et ceux qui sont <b>éliminés</b> (rouge), avec leur meilleure marque. Vérifiez, puis <b>Confirm &amp; Advance</b> — ou <b>Cancel</b> pour modifier la sélection."],
+    ]},
+    { name:"Sauts autonomes", sub:"8 étapes · sans serveur", steps:[
+      F_home_j,
+      ["Démarrer en autonome","Appuyez sur <b>Start Stand-Alone</b> pour fonctionner sans serveur."],
+      ["Configuration des appareils","L'anémomètre et les tableaux d'affichage se règlent ici, puis <b>Next</b>."],
+      ["Anémomètre connecté","Activez <b>Wind Readings</b> et appuyez sur <b>Select</b> pour choisir un anémomètre — le Demo Wind Gauge s'affiche <b>Connected</b>. Chaque essai capturera alors une mesure de vent."],
+      F_scb,
+      F_board,
+      ["Mesure directe (avec vent)","Mode de mesure directe avec le vent activé : appuyez sur <b>MEASURE</b> pour le saut et <b>WIND</b> pour la mesure."],
+      ["Distance + vent enregistrés","Chaque saut est enregistré avec sa planche et son vent (ici <b>−0.9 m/s</b>). <b>Clear</b> réinitialise l'historique."],
+    ]},
+   ]},
+ es:{ L:{ intro:"Un recorrido pantalla por pantalla de la estación total EDM AM02i — en modo demo. Elige un escenario y avanza paso a paso.", demo:"<b>●</b> Modo demo — las mediciones son simuladas, no hace falta hardware", pick:"Elige un escenario", prev:"‹ Anterior", next:"Siguiente ›", restart:"Volver al inicio ›", stepOf:(a,b)=>`Paso ${a} de ${b}` },
+   scn:[
+    { name:"Lanzamientos conectados", sub:"21 pasos · vía servidor", steps:[
+      S_home_t,
+      ["Elegir la prueba del servidor","Elige la prueba descargada del PolyField Server — el número entre corchetes es el número de atletas."],
+      ["Configuración de dispositivos","Configura los marcadores de esta prueba, luego <b>Next</b>."],
+      S_scb,
+      ["Fijar el centro del círculo","Coloca el prisma en el centro del círculo y pulsa el botón grande <b>Set Centre</b>. En modo demo la lectura es simulada."],
+      S_centreSet,
+      ["Verificar el borde","Mantén el prisma contra el interior del borde del círculo y pulsa <b>Verify Edge</b>."],
+      S_edgePass,
+      ["Fijar la línea de sector","Coloca el prisma en la línea de sector derecha y pulsa <b>Measure</b> para orientar los lanzamientos al sector. Necesario para el mapa de calor."],
+      ["Línea de sector fijada","La distancia del sector queda guardada. Pulsa <b>Next</b> para abrir la competición."],
+      ["Registrar atletas","Pulsa <b>+</b> para registrar a cada atleta. <b>Start</b> se habilita cuando el grupo esté completo."],
+      ["Listo para empezar","Cada atleta lleva ahora un número de orden. El orden se importa del PolyField Server y, por tanto, directamente de tu proveedor de competición. Pulsa <b>Start</b>."],
+      ["Medir un lanzamiento","El atleta actual, la ronda y el orden. Pulsa <b>MEASURE</b> para la marca, <b>X</b> para nulo, <b>P</b> para paso. <b>Next Athlete</b> avanza el orden."],
+      ["Marca registrada","Una marca válida aparece en azul y pasa al <b>Best Mark</b> del atleta y al historial de 6 rondas."],
+      ["Ronda completada","Cuando todos han lanzado en la ronda, aparece <b>Round Complete</b> — <b>Continue to Round N</b> para avanzar, o <b>Stay</b> para seguir añadiendo marcas. El botón <b>Next Round</b> hace lo mismo. Esta transición se muestra al final de las rondas 1 y 2."],
+      ["Corte y reordenación (tras la ronda 3)","Tras la ronda 3 se ofrece un corte — elige cuántos pasan a la final (<b>4 / 6 / 8 / 10 / All</b>), con la opción <b>Reorder athletes worst to best</b> o <b>Apply cuts separately per age group</b>, o <b>Select Athletes Manually</b>. Pulsa <b>Continue</b>."],
+      ["Confirmar la progresión","Una confirmación indica quién <b>avanza</b> (verde) y quién queda <b>eliminado</b> (rojo), con su mejor marca. Revisa y pulsa <b>Confirm &amp; Advance</b> — o <b>Cancel</b> para cambiar el corte."],
+      ["Transiciones de rondas posteriores","Las rondas tras el corte muestran una transición <b>Round N Complete</b> con la opción <b>Reorder Athletes (Worst to Best)</b> para cambiar el orden de la siguiente ronda. <b>Continue to Round N</b> para continuar."],
+      ["Competición completada","Al terminar la última ronda, <b>Competition Complete!</b> confirma que todas las rondas están hechas. <b>View Results</b> abre la clasificación final."],
+      ["Clasificación final","Los resultados de toda la prueba, ordenados por mejor marca — medallas para los tres primeros, el número de intentos de cada atleta y un enlace al mapa de calor por atleta."],
+      S_heat,
+    ]},
+    { name:"Lanzamientos autónomos", sub:"11 pasos · sin servidor", steps:[
+      S_home_t,
+      ["Iniciar en autónomo","En lugar de una prueba del servidor, pulsa <b>Start Stand-Alone</b> (derecha) para funcionar con conexión EDM directa y sin servidor."],
+      ["Configuración de dispositivos","Marcadores opcionales, luego <b>Next</b>."],
+      S_scb,
+      ["Elegir el círculo","En autónomo eliges tú mismo la geometría del círculo — <b>Shot / Discus / Hammer / Javelin Arc</b>. (El modo conectado lo toma de la prueba.)"],
+      S_centreSet,
+      S_edgePass,
+      ["Línea de sector fijada","La distancia del sector queda guardada. Pulsa <b>Next</b> para empezar a medir."],
+      ["Medición directa","El autónomo es un modo de medición directa: pulsa <b>MEASURE</b> para leer una distancia. Sin atletas ni rondas."],
+      ["Distancia + historial","Cada lanzamiento se registra con <b>Total / Longest / Average</b> y un historial. <b>New Event</b> empieza de nuevo."],
+      S_heat,
+    ]},
+    { name:"Saltos conectados", sub:"14 pasos · vía servidor", steps:[
+      S_home_j,
+      ["Elegir la prueba del servidor","Elige la prueba de saltos del PolyField Server — aquí, triple salto."],
+      ["Configuración de dispositivos (viento)","Aquí se configuran el <b>anemómetro</b> y los marcadores. Desactiva <b>Wind Readings</b> si no usas anemómetro."],
+      ["Anemómetro conectado","Si usas un anemómetro conectado al PolyField Server… Activa <b>Wind Readings</b> y pulsa <b>Select</b> para elegir un anemómetro — el Demo Wind Gauge aparece <b>Connected</b>. Cada intento capturará entonces una lectura de viento."],
+      S_scb,
+      S_board,
+      ["Registrar atletas","Marca a los atletas — a cada uno se le asigna una tabla en el registro. Puede cambiarse durante la competición."],
+      ["Listo para empezar","Todos registrados. Pulsa <b>Next</b>."],
+      ["Medir un salto (con viento)","Con un anemómetro seleccionado, el mosaico <b>WIND</b> está activo. Pulsa <b>MEASURE</b> para la distancia y <b>WIND</b> para iniciar la media de 5 segundos; <b>FOUL / PASS</b> según haga falta. La tabla del atleta se cambia con el desplegable. <b>Skip to…</b> permite salir del orden."],
+      ["Cambiar la tabla de un atleta","Elegir otra tabla en el desplegable del atleta muestra una confirmación <b>Board Change</b> (p. ej. <b>Moving to 13m Board</b>) para ese intento. Pulsa <b>OK</b> para aplicar."],
+      ["Salto + viento registrados","El intento muestra la distancia y su viento (aquí <b>−1.0 m/s</b>). <b>PASS</b> pasa a <b>TAKE 2</b> para medir un segundo punto en la arena si hace falta."],
+      ["Seleccionar finalistas (tras la ronda 3)","Tras la ronda 3, <b>Select Finalists</b> pregunta cuántos pasan a la final (<b>6 / 8 / 10 / 12</b>) — los N mejores por mejor distancia — o <b>Select Athletes Manually</b>. Pulsa <b>Continue</b>."],
+      ["Selección manual de finalistas","<b>Select Athletes Manually</b> abre una lista ordenada (mejor marca por atleta) — marca exactamente quién avanza. <b>Back to Quick Select</b> vuelve a los botones de número; <b>Continue</b> confirma."],
+      ["Confirmar la progresión","Una confirmación indica quién <b>avanza</b> (verde) y quién queda <b>eliminado</b> (rojo), con su mejor marca. Revisa y pulsa <b>Confirm &amp; Advance</b> — o <b>Cancel</b> para cambiar la selección."],
+    ]},
+    { name:"Saltos autónomos", sub:"8 pasos · sin servidor", steps:[
+      S_home_j,
+      ["Iniciar en autónomo","Pulsa <b>Start Stand-Alone</b> para funcionar sin servidor."],
+      ["Configuración de dispositivos","Aquí se configuran el anemómetro y los marcadores, luego <b>Next</b>."],
+      ["Anemómetro conectado","Activa <b>Wind Readings</b> y pulsa <b>Select</b> para elegir un anemómetro — el Demo Wind Gauge aparece <b>Connected</b>. Cada intento capturará entonces una lectura de viento."],
+      S_scb,
+      S_board,
+      ["Medición directa (con viento)","Modo de medición directa con viento activado: pulsa <b>MEASURE</b> para el salto y <b>WIND</b> para la lectura."],
+      ["Distancia + viento registrados","Cada salto se registra con su tabla y su viento (aquí <b>−0.9 m/s</b>). <b>Clear</b> reinicia el historial."],
+    ]},
+   ]},
+ nl:{ L:{ intro:"Een scherm-voor-scherm doorloop van het AM02i EDM-total station — in demomodus. Kies een scenario en doorloop het stap voor stap.", demo:"<b>●</b> Demomodus — metingen zijn gesimuleerd, geen hardware nodig", pick:"Kies een scenario", prev:"‹ Vorige", next:"Volgende ›", restart:"Terug naar begin ›", stepOf:(a,b)=>`Stap ${a} van ${b}` },
+   scn:[
+    { name:"Verbonden werpen", sub:"21 stappen · via server", steps:[
+      N_home_t,
+      ["Kies het serveronderdeel","Kies het onderdeel dat van de PolyField Server is opgehaald — het getal tussen haakjes is het aantal atleten."],
+      ["Apparaten instellen","Stel eventuele scoreborden voor dit onderdeel in en tik op <b>Next</b>."],
+      N_scb,
+      ["Cirkelmidden instellen","Plaats het prisma in het midden van de cirkel en druk op de grote knop <b>Set Centre</b>. In demomodus is de meting gesimuleerd."],
+      N_centreSet,
+      ["Rand controleren","Houd het prisma tegen de binnenkant van de cirkelrand en druk op <b>Verify Edge</b>."],
+      N_edgePass,
+      ["Sectorlijn instellen","Plaats het prisma op de rechter sectorlijn en druk op <b>Measure</b> om de worpen op de sector te richten. Vereist voor de heatmap."],
+      ["Sectorlijn ingesteld","De sectorafstand is opgeslagen. Druk op <b>Next</b> om de wedstrijd te openen."],
+      ["Atleten inchecken","Tik op <b>+</b> om elke atleet in te checken. <b>Start</b> komt beschikbaar zodra je veld compleet is."],
+      ["Klaar om te starten","Elke atleet heeft nu een startvolgordenummer. De startvolgorde wordt van de PolyField Server geïmporteerd en dus rechtstreeks van je wedstrijdaanbieder. Druk op <b>Start</b>."],
+      ["Een worp meten","De huidige atleet, ronde en startvolgorde. Druk op <b>MEASURE</b> voor de prestatie, <b>X</b> voor een ongeldige poging, <b>P</b> voor pass. <b>Next Athlete</b> zet de volgorde door."],
+      ["Prestatie geregistreerd","Een geldige prestatie verschijnt in het blauw en komt in de <b>Best Mark</b> van de atleet en de 6-rondengeschiedenis."],
+      ["Ronde voltooid","Zodra alle atleten in de ronde geworpen hebben, verschijnt <b>Round Complete</b> — <b>Continue to Round N</b> om verder te gaan, of <b>Stay</b> om prestaties te blijven toevoegen. De knop <b>Next Round</b> onderaan doet hetzelfde. Deze overgang verschijnt aan het eind van ronde 1 en 2."],
+      ["Cut en herordenen (na ronde 3)","Na ronde 3 biedt het venster een cut — kies hoeveel er doorgaan naar de finale (<b>4 / 6 / 8 / 10 / All</b>), optioneel <b>Reorder athletes worst to best</b> of <b>Apply cuts separately per age group</b>, of <b>Select Athletes Manually</b>. Druk op <b>Continue</b>."],
+      ["Doorgang bevestigen","Een bevestiging toont wie <b>doorgaat</b> (groen) en wie <b>afvalt</b> (rood), met hun beste prestatie. Controleer en druk op <b>Confirm &amp; Advance</b> — of <b>Cancel</b> om de cut te wijzigen."],
+      ["Overgangen van latere rondes","Rondes na de cut tonen een <b>Round N Complete</b>-overgang met een optie <b>Reorder Athletes (Worst to Best)</b> om de werpvolgorde voor de volgende ronde te wijzigen. <b>Continue to Round N</b> om verder te gaan."],
+      ["Wedstrijd voltooid","Als de laatste ronde klaar is, bevestigt <b>Competition Complete!</b> dat alle rondes gedaan zijn. <b>View Results</b> opent de eindstand."],
+      ["Eindstand","De resultaten van het hele onderdeel, gerangschikt op beste prestatie — medailles voor de top drie, het aantal pogingen per atleet en een heatmap-link per atleet."],
+      N_heat,
+    ]},
+    { name:"Zelfstandig werpen", sub:"11 stappen · zonder server", steps:[
+      N_home_t,
+      ["Zelfstandig starten","Druk in plaats van een serveronderdeel op <b>Start Stand-Alone</b> (rechts) voor een directe EDM-verbinding zonder server."],
+      ["Apparaten instellen","Scoreborden optioneel, dan <b>Next</b>."],
+      N_scb,
+      ["Kies de cirkel","In zelfstandige modus kies je zelf de cirkelgeometrie — <b>Shot / Discus / Hammer / Javelin Arc</b>. (De verbonden modus haalt dit uit het onderdeel.)"],
+      N_centreSet,
+      N_edgePass,
+      ["Sectorlijn ingesteld","De sectorafstand is opgeslagen. Druk op <b>Next</b> om te beginnen met meten."],
+      ["Direct meten","Zelfstandig is een directe-meetmodus: druk op <b>MEASURE</b> om een afstand te lezen. Zonder atleten of rondes."],
+      ["Afstand + geschiedenis","Elke worp wordt vastgelegd met <b>Total / Longest / Average</b> en een geschiedenis. <b>New Event</b> begint opnieuw."],
+      N_heat,
+    ]},
+    { name:"Verbonden springen", sub:"14 stappen · via server", steps:[
+      N_home_j,
+      ["Kies het serveronderdeel","Kies het springonderdeel van de PolyField Server — hier hinkstapspringen."],
+      ["Apparaten instellen (wind)","Hier stel je een <b>windmeter</b> en scoreborden in. Zet <b>Wind Readings</b> uit als je geen windmeter gebruikt."],
+      ["Windmeter verbonden","Als je een via de PolyField Server verbonden windmeter gebruikt… Zet <b>Wind Readings</b> aan en tik op <b>Select</b> om een windmeter te kiezen — de Demo Wind Gauge toont <b>Connected</b>. Elke poging legt dan een windmeting vast."],
+      N_scb,
+      N_board,
+      ["Atleten inchecken","Vink atleten aan — elk krijgt bij het inchecken een balk toegewezen. Dit kan tijdens de wedstrijd worden gewijzigd."],
+      ["Klaar om te starten","Iedereen ingecheckt. Druk op <b>Next</b>."],
+      ["Een sprong meten (met wind)","Met een gekozen windmeter is de <b>WIND</b>-tegel actief. Druk op <b>MEASURE</b> voor de afstand en <b>WIND</b> om het gemiddelde over 5 seconden te starten; <b>FOUL / PASS</b> indien nodig. De balk van de atleet wijzig je met het uitklapmenu. <b>Skip to…</b> laat je buiten de volgorde springen."],
+      ["De balk van een atleet wijzigen","Een andere balk kiezen in het uitklapmenu van de atleet toont een <b>Board Change</b>-bevestiging (bijv. <b>Moving to 13m Board</b>) voor die poging. Tik op <b>OK</b> om toe te passen."],
+      ["Sprong + wind geregistreerd","De poging toont de afstand en de wind (hier <b>−1.0 m/s</b>). <b>PASS</b> wordt <b>TAKE 2</b> om zo nodig een tweede punt in het zand te meten."],
+      ["Finalisten kiezen (na ronde 3)","Na ronde 3 vraagt <b>Select Finalists</b> hoeveel er doorgaan naar de finale (<b>6 / 8 / 10 / 12</b>) — de beste N op beste afstand — of <b>Select Athletes Manually</b>. Druk op <b>Continue</b>."],
+      ["Handmatige finalistenselectie","<b>Select Athletes Manually</b> opent een gerangschikte lijst (beste prestatie per atleet) — vink precies aan wie doorgaat. <b>Back to Quick Select</b> keert terug naar de aantalknoppen; <b>Continue</b> bevestigt."],
+      ["Doorgang bevestigen","Een bevestiging toont wie <b>doorgaat</b> (groen) en wie <b>afvalt</b> (rood), met hun beste prestatie. Controleer en druk op <b>Confirm &amp; Advance</b> — of <b>Cancel</b> om de selectie te wijzigen."],
+    ]},
+    { name:"Zelfstandig springen", sub:"8 stappen · zonder server", steps:[
+      N_home_j,
+      ["Zelfstandig starten","Druk op <b>Start Stand-Alone</b> om zonder server te werken."],
+      ["Apparaten instellen","Hier stel je de windmeter en scoreborden in, dan <b>Next</b>."],
+      ["Windmeter verbonden","Zet <b>Wind Readings</b> aan en tik op <b>Select</b> om een windmeter te kiezen — de Demo Wind Gauge toont <b>Connected</b>. Elke poging legt dan een windmeting vast."],
+      N_scb,
+      N_board,
+      ["Direct meten (met wind)","Directe-meetmodus met wind aan: druk op <b>MEASURE</b> voor de sprong en <b>WIND</b> voor de meting."],
+      ["Afstand + wind vastgelegd","Elke sprong wordt vastgelegd met balk en wind (hier <b>−0.9 m/s</b>). <b>Clear</b> wist de geschiedenis."],
+    ]},
+   ]},
+};
+
+function meta(i){ if(LANG==='en')return SCN[i]; const t=I18N[LANG].scn[i]; return {name:t.name, sub:t.sub, color:SCN[i].color, soft:SCN[i].soft, icon:SCN[i].icon}; }
+function stepTxt(i){ const s=SCN[sc].steps[i]; if(LANG==='en')return [s[1],s[2]]; const t=I18N[LANG]&&I18N[LANG].scn[sc]&&I18N[LANG].scn[sc].steps[i]; return t?[t[0],t[1]]:[s[1],s[2]]; }
+function lab(k){ if(LANG!=='en'&&I18N[LANG].L&&I18N[LANG].L[k]!=null) return I18N[LANG].L[k]; return EN_L[k]; }
+
 function buildPicker(){
-  el('picker').innerHTML = SCN.map((s,i)=>`
-    <button class="scn" role="tab" aria-selected="${i===sc}" onclick="pick(${i})"
-      style="--sc:${s.color};--sc-soft:${s.soft}">
+  el('picker').innerHTML = SCN.map((s,i)=>{ const m=meta(i); return `
+    <button class="scn" role="tab" aria-selected="${i===sc}" onclick="pick(${i})" style="--sc:${s.color};--sc-soft:${s.soft}">
       <span class="ic">${ICON[s.icon]}</span>
-      <span><span class="t">${s.name}</span><span class="s">${s.sub}</span></span>
-    </button>`).join('');
-}
-function buildThumbs(){
-  el('thumbs').innerHTML = SETUP.map(([k,c])=>`
-    <div class="thumb" onclick="lightbox('${k}')"><img src="${IMG[k]}" alt="${c}"><div class="cap">${c}</div></div>`).join('');
+      <span><span class="t">${m.name}</span><span class="s">${m.sub}</span></span>
+    </button>`;}).join('');
 }
 function pick(i){ sc=i; st=0; render(); }
 function step(d){ const n=SCN[sc].steps.length; st=Math.min(n-1,Math.max(0,st+d)); render(); }
@@ -260,29 +494,38 @@ function nextOrRestart(){ const n=SCN[sc].steps.length; st = st>=n-1 ? 0 : st+1;
 function goto(i){ st=i; render(); }
 function lightbox(k){ el('lbimg').src=IMG[k]; el('lb').dataset.open='true'; }
 
+function applyChrome(){
+  el('introP').textContent = lab('intro');
+  el('demoPill').innerHTML = lab('demo');
+  el('pickerLbl').textContent = lab('pick');
+  [...document.querySelectorAll('#langs a')].forEach(a=>a.classList.toggle('on', a.dataset.lang===LANG));
+}
+function setLang(l){ LANG=l; try{localStorage.setItem('pf-manual-lang',l);}catch(e){} applyChrome(); buildPicker(); render(); }
+
 function render(){
-  const s=SCN[sc]; const steps=s.steps; const cur=steps[st];
+  const s=SCN[sc]; const m=meta(sc); const steps=s.steps; const cur=steps[st]; const txt=stepTxt(st);
   document.documentElement.style.setProperty('--accent', s.color);
   document.documentElement.style.setProperty('--accent-soft', s.soft);
-  // picker selected
   [...document.querySelectorAll('.scn')].forEach((b,i)=>b.setAttribute('aria-selected', i===sc));
-  el('scnName').textContent = s.name;
-  el('count').textContent = `Step ${st+1} of ${steps.length}`;
+  el('scnName').textContent = m.name;
+  el('count').textContent = lab('stepOf')(st+1, steps.length);
   el('shot').src = IMG[cur[0]];
-  el('shot').alt = cur[1];
+  el('shot').alt = txt[0];
   el('stepNum').textContent = st+1;
-  el('stepTitleText').textContent = cur[1];
-  el('stepDesc').innerHTML = cur[2];
-  el('dots').innerHTML = steps.map((_,i)=>`<button class="dot" aria-current="${i===st}" onclick="goto(${i})" title="Step ${i+1}"></button>`).join('');
+  el('stepTitleText').textContent = txt[0];
+  el('stepDesc').innerHTML = txt[1];
+  el('dots').innerHTML = steps.map((_,i)=>`<button class="dot" aria-current="${i===st}" onclick="goto(${i})" title="${i+1}"></button>`).join('');
   el('prev').disabled = st===0;
-  el('next').innerHTML = (st===steps.length-1) ? 'Back to Start &rsaquo;' : 'Next &rsaquo;';
+  el('prev').innerHTML = lab('prev');
+  el('next').innerHTML = (st===steps.length-1) ? lab('restart') : lab('next');
 }
 document.addEventListener('keydown',e=>{
   if(el('lb').dataset.open==='true'){ if(e.key==='Escape') el('lb').dataset.open='false'; return; }
   if(e.key==='ArrowRight') step(1);
   if(e.key==='ArrowLeft') step(-1);
 });
-buildPicker(); render();
+try{var _l=localStorage.getItem('pf-manual-lang'); if(_l&&I18N[_l]) LANG=_l;}catch(e){}
+applyChrome(); buildPicker(); render();
 </script>
 
 <script>
